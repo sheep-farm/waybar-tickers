@@ -38,6 +38,8 @@ PETR4.SA
 BTC-USD
 ```
 
+Changes to `tickers.txt` are picked up live — no Waybar restart needed. Added tickers are fetched immediately on first display; removed tickers are skipped on the next cycle.
+
 ## Parameters (tickers.sh)
 
 | Variable | Default | Description |
