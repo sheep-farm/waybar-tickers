@@ -7,13 +7,9 @@ CACHE_FILE="/tmp/waybar-tickers.json"
 STATE_FILE="/tmp/waybar-tickers.state"
 REFRESH_INTERVAL=300
 
-signal() {
-    awk -v p="$1" 'BEGIN { if (p > 0.1) print "up"; else if (p < -0.1) print "down"; else print "neutral" }'
-}
-
-arrow() {
-    awk -v p="$1" 'BEGIN { if (p > 0.1) print "up"; else if (p < -0.1) print "down"; else print "neutral" }'
-}
+# Placeholders: {ticker} {arrow} {price} {currency} {change} {change_abs}
+FORMAT="{ticker} {arrow} {price} {currency} {change}%"
+TOOLTIP="{change}%"
 
 read_tickers() {
     grep -v '^\s*#' "$TICKERS_FILE" 2>/dev/null | grep -v '^\s*$'
@@ -25,7 +21,7 @@ fetch_cache() {
     tmp=$(mktemp)
     printf '{' > "$tmp"
     for sym in "${tickers[@]}"; do
-        local json prev curr change
+        local json prev curr currency change
         json=$(curl -s --max-time 10 \
             -H "User-Agent: Mozilla/5.0" \
             "https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d")
@@ -42,10 +38,20 @@ fetch_cache() {
     mv "$tmp" "$CACHE_FILE"
 }
 
-mapfile -t TICKERS < <(read_tickers)
-[[ "${#TICKERS[@]}" -eq 0 ]] && echo '{}' && exit 0
+render() {
+    local template="$1" ticker="$2" arrow="$3" price="$4" currency="$5" change="$6" change_abs="$7"
+    printf '%s' "$template" \
+        | sed "s/{ticker}/$ticker/g" \
+        | sed "s/{arrow}/$arrow/g" \
+        | sed "s/{price}/$price/g" \
+        | sed "s/{currency}/$currency/g" \
+        | sed "s/{change}/$change/g" \
+        | sed "s/{change_abs}/$change_abs/g"
+}
 
-# atualiza cache se expirado ou ausente
+mapfile -t TICKERS < <(read_tickers)
+[[ "${#TICKERS[@]}" -eq 0 ]] && exit 0
+
 now=$(date +%s)
 cache_age=999999
 [[ -f "$CACHE_FILE" ]] && cache_age=$(( now - $(stat -c %Y "$CACHE_FILE") ))
@@ -55,7 +61,6 @@ fi
 
 [[ ! -f "$CACHE_FILE" ]] && exit 0
 
-# avança o índice de exibição
 i=0
 [[ -f "$STATE_FILE" ]] && i=$(cat "$STATE_FILE")
 sym="${TICKERS[$((i % ${#TICKERS[@]}))]}"
@@ -67,9 +72,12 @@ currency=$(jq -r --arg s "$sym" '.[$s].currency // empty' "$CACHE_FILE")
 [[ -z "$price" || -z "$change" ]] && exit 0
 
 css=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "up"; else if (p < -0.1) print "down"; else print "neutral" }')
-arr=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) print "↓"; else print "→" }')
+arrow=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) print "↓"; else print "→" }')
 price_fmt=$(awk -v p="$price" 'BEGIN { printf "%.2f", p }')
 change_fmt=$(awk -v c="$change" 'BEGIN { printf "%+.2f", c }')
+change_abs=$(awk -v c="$change" 'BEGIN { printf "%.2f", (c < 0 ? -c : c) }')
 
-printf '{"text":"%s %s %s %s %s%%","tooltip":"%s%%","class":"%s"}\n' \
-    "$sym" "$arr" "$price_fmt" "$currency" "$change_fmt" "$change_fmt" "$css"
+text=$(render "$FORMAT" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
+tooltip=$(render "$TOOLTIP" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
+
+printf '{"text":"%s","tooltip":"%s","class":"%s"}\n' "$text" "$tooltip" "$css"
