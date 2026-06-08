@@ -1,8 +1,8 @@
-// Adicionar "custom/tickers" em modules-left, modules-center ou modules-right
+// Adicionar "custom/tickers" em modules-right (ou onde preferir)
 // e copiar o bloco abaixo para o config.jsonc
 
 "custom/tickers": {
-    "exec": "~/.config/waybar/scripts/tickers.py",
+    "exec": "~/.config/waybar/scripts/tickers.sh",
     "return-type": "json",
-    "interval": 0
+    "interval": 3
 }
