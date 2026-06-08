@@ -1,8 +1,8 @@
 # waybar-tickers
 
-Módulo Waybar para cotações rotativas via Yahoo Finance (sem dependências externas).
+Waybar module for rotating stock quotes via Yahoo Finance. No external dependencies.
 
-## Formato
+## Format
 
 ```
 AAPL ↓ 301.54 USD -1.89%
@@ -10,14 +10,14 @@ PETR4.SA ↑ 41.22 BRL +0.81%
 BTC-USD ↑ 63725.70 USD +0.77%
 ```
 
-Sinais: `↑` alta, `→` neutro, `↓` baixa (limiar: ±0.1%).  
-Classes CSS: `up`, `neutral`, `down` — estilizáveis via `style.css`.
+Signals: `↑` up, `→` neutral, `↓` down (threshold: ±0.1%).  
+CSS classes: `up`, `neutral`, `down` — style via `style.css`.
 
-## Dependências
+## Dependencies
 
-`curl` e `jq` — disponíveis na maioria das distros.
+`curl` and `jq` — available in most distros.
 
-## Instalação
+## Installation
 
 ```bash
 cp tickers.sh ~/.config/waybar/scripts/tickers.sh
@@ -26,11 +26,11 @@ chmod +x ~/.config/waybar/scripts/tickers.sh
 cp tickers.txt ~/.config/waybar/scripts/tickers.txt
 ```
 
-Adicionar ao `config.jsonc` (ver `waybar-config-snippet.jsonc`).
+Add to `config.jsonc` (see `waybar-config-snippet.jsonc`).
 
 ## tickers.txt
 
-Um ticker por linha. Sufixo `.SA` para ações brasileiras. Linhas com `#` são ignoradas.
+One ticker per line. Use `.SA` suffix for Brazilian stocks. Lines starting with `#` are ignored.
 
 ```
 AAPL
@@ -38,10 +38,10 @@ PETR4.SA
 BTC-USD
 ```
 
-## Parâmetros (tickers.sh)
+## Parameters (tickers.sh)
 
-| Variável | Padrão | Descrição |
+| Variable | Default | Description |
 |---|---|---|
-| `REFRESH_INTERVAL` | 300 s | Intervalo de atualização dos dados |
+| `REFRESH_INTERVAL` | 300 s | Data refresh interval |
 
-O intervalo de exibição por ticker é controlado pelo `interval` no `config.jsonc` (padrão: 3 s).
+The display interval per ticker is controlled by `interval` in `config.jsonc` (default: 3 s).
