@@ -71,5 +71,5 @@ arr=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) p
 price_fmt=$(awk -v p="$price" 'BEGIN { printf "%.2f", p }')
 change_fmt=$(awk -v c="$change" 'BEGIN { printf "%+.2f", c }')
 
-printf '{"text":"%s %s %s %s","tooltip":"%s%%","class":"%s"}\n' \
-    "$sym" "$arr" "$price_fmt" "$currency" "$change_fmt" "$css"
+printf '{"text":"%s %s %s %s %s%%","tooltip":"%s%%","class":"%s"}\n' \
+    "$sym" "$arr" "$price_fmt" "$currency" "$change_fmt" "$change_fmt" "$css"
