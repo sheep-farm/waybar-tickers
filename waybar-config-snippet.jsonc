@@ -1,8 +1,33 @@
-// Adicionar "custom/tickers" em modules-right (ou onde preferir)
-// e copiar o bloco abaixo para o config.jsonc
+// ── config.jsonc ─────────────────────────────────────────────────────────────
+// Add "custom/tickers" to modules-left, modules-center, or modules-right:
+//
+//   "modules-right": ["tray", "custom/tickers", ...]
+//
+// Then add the module definition:
 
 "custom/tickers": {
     "exec": "~/.config/waybar/scripts/tickers.sh",
     "return-type": "json",
     "interval": 3
 }
+
+// ── style.css ─────────────────────────────────────────────────────────────────
+// Append to your style.css. Adjust colors to match your theme.
+
+/*
+#custom-tickers {
+    padding: 0 10px;
+}
+
+#custom-tickers.up {
+    color: #a6e3a1;   /* green  */
+}
+
+#custom-tickers.down {
+    color: #f38ba8;   /* red    */
+}
+
+#custom-tickers.neutral {
+    color: #f9e2af;   /* yellow */
+}
+*/
