@@ -2,6 +2,8 @@
 
 Waybar module for rotating stock quotes via Yahoo Finance. No external dependencies.
 
+https://github.com/sheep-farm/waybar-tickers
+
 ## Format
 
 ```
