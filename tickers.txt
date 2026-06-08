@@ -1,0 +1,7 @@
+# Um ticker por linha. Linhas com # são ignoradas.
+# Exemplos: ações BR (sufixo .SA), EUA, cripto, ETFs
+AAPL
+MSFT
+PETR4.SA
+VALE3.SA
+BTC-USD
