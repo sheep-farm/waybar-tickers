@@ -67,6 +67,13 @@ sym="${TICKERS[$((i % ${#TICKERS[@]}))]}"
 printf '%d' $(( (i + 1) % ${#TICKERS[@]} )) > "$STATE_FILE"
 
 price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
+
+# ticker ausente no cache (adicionado a quente) — busca imediatamente
+if [[ -z "$price" ]]; then
+    fetch_cache "${TICKERS[@]}"
+    price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
+fi
+
 change=$(jq -r --arg s "$sym" '.[$s].change // empty' "$CACHE_FILE")
 currency=$(jq -r --arg s "$sym" '.[$s].currency // empty' "$CACHE_FILE")
 [[ -z "$price" || -z "$change" ]] && exit 0
