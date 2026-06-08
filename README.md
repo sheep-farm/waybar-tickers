@@ -42,6 +42,19 @@ BTC-USD
 
 | Variable | Default | Description |
 |---|---|---|
+| `FORMAT` | `{ticker} {arrow} {price} {currency} {change}%` | Main text format |
+| `TOOLTIP` | `{change}%` | Tooltip format |
 | `REFRESH_INTERVAL` | 300 s | Data refresh interval |
 
 The display interval per ticker is controlled by `interval` in `config.jsonc` (default: 3 s).
+
+### Placeholders
+
+| Placeholder | Example |
+|---|---|
+| `{ticker}` | `AAPL` |
+| `{arrow}` | `↑` |
+| `{price}` | `301.54` |
+| `{currency}` | `USD` |
+| `{change}` | `+1.89%` (signed) |
+| `{change_abs}` | `1.89` (absolute value) |
