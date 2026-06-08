@@ -28,7 +28,37 @@ chmod +x ~/.config/waybar/scripts/tickers.sh
 cp tickers.txt ~/.config/waybar/scripts/tickers.txt
 ```
 
-Add to `config.jsonc` (see `waybar-config-snippet.jsonc`).
+Add to `config.jsonc`:
+
+```jsonc
+"custom/tickers": {
+    "exec": "~/.config/waybar/scripts/tickers.sh",
+    "return-type": "json",
+    "interval": 3
+}
+```
+
+Add `"custom/tickers"` to `modules-left`, `modules-center`, or `modules-right`.
+
+Add to `style.css`:
+
+```css
+#custom-tickers {
+    padding: 0 10px;
+}
+
+#custom-tickers.up {
+    color: #a6e3a1;
+}
+
+#custom-tickers.down {
+    color: #f38ba8;
+}
+
+#custom-tickers.neutral {
+    color: #f9e2af;
+}
+```
 
 ## tickers.txt
 
