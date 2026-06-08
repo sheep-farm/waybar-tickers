@@ -31,10 +31,11 @@ fetch_cache() {
             "https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d")
         prev=$(printf '%s' "$json" | jq -r '.chart.result[0].indicators.quote[0].close[-2] // empty')
         curr=$(printf '%s' "$json" | jq -r '.chart.result[0].indicators.quote[0].close[-1] // empty')
+        currency=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.currency // empty')
         [[ -z "$prev" || -z "$curr" ]] && continue
         change=$(awk -v c="$curr" -v p="$prev" 'BEGIN { printf "%.4f", (c-p)/p*100 }')
         [[ "$first" -eq 0 ]] && printf ',' >> "$tmp"
-        printf '"%s":{"price":%s,"change":%s}' "$sym" "$curr" "$change" >> "$tmp"
+        printf '"%s":{"price":%s,"change":%s,"currency":"%s"}' "$sym" "$curr" "$change" "$currency" >> "$tmp"
         first=0
     done
     printf '}' >> "$tmp"
@@ -62,6 +63,7 @@ printf '%d' $(( (i + 1) % ${#TICKERS[@]} )) > "$STATE_FILE"
 
 price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
 change=$(jq -r --arg s "$sym" '.[$s].change // empty' "$CACHE_FILE")
+currency=$(jq -r --arg s "$sym" '.[$s].currency // empty' "$CACHE_FILE")
 [[ -z "$price" || -z "$change" ]] && exit 0
 
 css=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "up"; else if (p < -0.1) print "down"; else print "neutral" }')
@@ -69,5 +71,5 @@ arr=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) p
 price_fmt=$(awk -v p="$price" 'BEGIN { printf "%.2f", p }')
 change_fmt=$(awk -v c="$change" 'BEGIN { printf "%+.2f", c }')
 
-printf '{"text":"%s %s %s","tooltip":"%s%%","class":"%s"}\n' \
-    "$sym" "$arr" "$price_fmt" "$change_fmt" "$css"
+printf '{"text":"%s %s %s %s","tooltip":"%s%%","class":"%s"}\n' \
+    "$sym" "$arr" "$price_fmt" "$currency" "$change_fmt" "$css"
