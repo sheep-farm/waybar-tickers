@@ -2,6 +2,7 @@
 """Waybar module: rotating stock ticker using yfinance."""
 
 import json
+import threading
 import time
 from pathlib import Path
 
@@ -21,18 +22,25 @@ def signal(change_pct: float) -> str:
 
 
 def fetch_all(symbols: list[str]) -> dict:
-    data = {}
-    for sym in symbols:
-        try:
-            hist = yf.Ticker(sym).history(period="2d")
-            if len(hist) >= 2:
-                prev = hist["Close"].iloc[-2]
-                curr = hist["Close"].iloc[-1]
-                change = (curr - prev) / prev * 100
-                data[sym] = (curr, change)
-        except Exception:
-            pass
-    return data
+    if not symbols:
+        return {}
+    try:
+        df = yf.download(symbols, period="2d", auto_adjust=True, progress=False, threads=True)
+        closes = df["Close"]
+        if len(symbols) == 1 and not hasattr(closes, "columns"):
+            closes = closes.to_frame(name=symbols[0])
+        result = {}
+        for sym in symbols:
+            try:
+                col = closes[sym].dropna()
+                if len(col) >= 2:
+                    prev, curr = col.iloc[-2], col.iloc[-1]
+                    result[sym] = (float(curr), float((curr - prev) / prev * 100))
+            except Exception:
+                pass
+        return result
+    except Exception:
+        return {}
 
 
 def read_tickers() -> list[str]:
@@ -47,35 +55,46 @@ def read_tickers() -> list[str]:
 
 def main():
     cache: dict = {}
-    last_fetch: float = 0
+    lock = threading.Lock()
+
+    def refresh_loop():
+        while True:
+            tickers = read_tickers()
+            new = fetch_all(tickers)
+            with lock:
+                cache.update(new)
+            time.sleep(REFRESH_INTERVAL)
+
+    threading.Thread(target=refresh_loop, daemon=True).start()
+
+    # placeholder enquanto o primeiro fetch não chega
+    print(json.dumps({"text": "⟳ …", "tooltip": "carregando cotações", "class": "neutral"}), flush=True)
+
     i = 0
-
     while True:
-        tickers = read_tickers()
-        now = time.time()
-
-        if not cache or now - last_fetch > REFRESH_INTERVAL:
-            cache = fetch_all(tickers)
-            last_fetch = now
-
-        if tickers:
-            sym = tickers[i % len(tickers)]
-            i += 1
-
-            if sym in cache:
-                price, change = cache[sym]
-                sig = signal(change)
-                css = "up" if change > 0.1 else "down" if change < -0.1 else "neutral"
-                print(
-                    json.dumps({
-                        "text": f"{sym} {sig} {price:.2f}",
-                        "tooltip": f"{change:+.2f}%",
-                        "class": css,
-                    }),
-                    flush=True,
-                )
-
         time.sleep(DISPLAY_INTERVAL)
+        tickers = read_tickers()
+        if not tickers:
+            continue
+
+        sym = tickers[i % len(tickers)]
+        i += 1
+
+        with lock:
+            entry = cache.get(sym)
+
+        if entry:
+            price, change = entry
+            sig = signal(change)
+            css = "up" if change > 0.1 else "down" if change < -0.1 else "neutral"
+            print(
+                json.dumps({
+                    "text": f"{sym} {sig} {price:.2f}",
+                    "tooltip": f"{change:+.2f}%",
+                    "class": css,
+                }),
+                flush=True,
+            )
 
 
 if __name__ == "__main__":
