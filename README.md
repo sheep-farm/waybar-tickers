@@ -88,12 +88,24 @@ Also set `interval` to `0` in `config.jsonc`. With `interval: 0`, Waybar respawn
 
 In scroll mode the CSS `.up` / `.down` / `.neutral` classes are not used (colors are inline). The `style.css` block for `#custom-tickers` still applies for padding and font.
 
+### Tooltip
+
+Hovering the module shows a table with all tickers, rendered in monospace with columns dynamically aligned and each line colored by direction:
+
+```
+↑  AAPL      301.54 USD   +1.89%
+↓  PETR4.SA   41.22 BRL   -0.81%
+↑  BTC-USD  63725.70 USD   +0.77%
+```
+
+In rotation mode the `TOOLTIP` format string is used instead (one ticker at a time).
+
 ## Parameters (tickers.sh)
 
 | Variable | Default | Description |
 |---|---|---|
 | `FORMAT` | `{ticker} {arrow} {price} {currency} {change}%` | Main text format |
-| `TOOLTIP` | `{arrow} {ticker} {price} {currency} {change}%` | Tooltip format (Pango color applied automatically) |
+| `TOOLTIP` | `{arrow} {ticker} {price} {currency} {change}%` | Tooltip format — rotation mode only; scroll mode uses an aligned table |
 | `REFRESH_INTERVAL` | 300 s | Data refresh interval |
 | `SCROLL` | `0` | Set to `1` to enable scroll mode |
 | `DISPLAY_WIDTH` | `40` | Visible characters in scroll mode |
