@@ -11,7 +11,6 @@ REFRESH_INTERVAL=300
 
 # Placeholders: {ticker} {arrow} {price} {currency} {change} {change_abs}
 FORMAT="{ticker} {arrow} {price} {currency} {change}%"
-TOOLTIP="{arrow} {ticker} {price} {currency} {change}%"
 
 # SCROLL=1: horizontal ticker tape. SCROLL=0: single-ticker rotation.
 # When SCROLL=1, set interval: 0 in config.jsonc (Waybar respawns immediately).
@@ -59,6 +58,43 @@ render() {
         | sed "s/{change_abs}/$change_abs/g"
 }
 
+build_tooltip() {
+    local tip_arrows=() tip_tickers=() tip_prices=() tip_currencies=() tip_changes=() tip_colors=()
+    for sym in "${TICKERS[@]}"; do
+        local price change currency arrow price_fmt change_fmt color
+        price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
+        change=$(jq -r --arg s "$sym" '.[$s].change // empty' "$CACHE_FILE")
+        currency=$(jq -r --arg s "$sym" '.[$s].currency // empty' "$CACHE_FILE")
+        [[ -z "$price" || -z "$change" ]] && continue
+        arrow=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) print "↓"; else print "→" }')
+        price_fmt=$(awk -v p="$price" 'BEGIN { printf "%.2f", p }')
+        change_fmt=$(awk -v c="$change" 'BEGIN { printf "%+.2f", c }')
+        color=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "#a6e3a1"; else if (p < -0.1) print "#f38ba8"; else print "#f9e2af" }')
+        tip_arrows+=("$arrow")
+        tip_tickers+=("$sym")
+        tip_prices+=("$price_fmt")
+        tip_currencies+=("$currency")
+        tip_changes+=("${change_fmt}%")
+        tip_colors+=("$color")
+    done
+    local max_t=0 max_p=0 max_c=0
+    for (( k=0; k<${#tip_tickers[@]}; k++ )); do
+        (( ${#tip_tickers[k]} > max_t )) && max_t=${#tip_tickers[k]}
+        (( ${#tip_prices[k]} > max_p )) && max_p=${#tip_prices[k]}
+        (( ${#tip_changes[k]} > max_c )) && max_c=${#tip_changes[k]}
+    done
+    local lines=()
+    for (( k=0; k<${#tip_tickers[@]}; k++ )); do
+        local line
+        line=$(printf "%s  %-*s  %*s %-3s  %*s" \
+            "${tip_arrows[k]}" "$max_t" "${tip_tickers[k]}" \
+            "$max_p" "${tip_prices[k]}" "${tip_currencies[k]}" \
+            "$max_c" "${tip_changes[k]}")
+        lines+=("<span font_family='monospace' color='${tip_colors[k]}'>${line}</span>")
+    done
+    printf '%s\n' "${lines[@]}" | sed 's/$/\\n/' | tr -d '\n'
+}
+
 mapfile -t TICKERS < <(read_tickers)
 [[ "${#TICKERS[@]}" -eq 0 ]] && exit 0
 
@@ -85,12 +121,6 @@ if [[ "$SCROLL" -eq 1 ]]; then
     seg_lens=()
     seg_texts=()
     seg_colors=()
-    tooltip_lines=()
-    tip_arrows=()
-    tip_tickers=()
-    tip_prices=()
-    tip_currencies=()
-    tip_changes=()
     sep_len=${#SEPARATOR}
     pos=0
     first=1
@@ -118,30 +148,11 @@ if [[ "$SCROLL" -eq 1 ]]; then
         seg_lens+=("${#text}")
         seg_texts+=("$text")
         seg_colors+=("$color")
-        tip_arrows+=("$arrow")
-        tip_tickers+=("$sym")
-        tip_prices+=("$price_fmt")
-        tip_currencies+=("$currency")
-        tip_changes+=("${change_fmt}%")
         pos=$(( pos + ${#text} ))
         first=0
     done
 
     [[ ${#seg_texts[@]} -eq 0 ]] && exit 0
-
-    max_t=0; max_p=0; max_c=0
-    for (( k=0; k<${#tip_tickers[@]}; k++ )); do
-        (( ${#tip_tickers[k]} > max_t )) && max_t=${#tip_tickers[k]}
-        (( ${#tip_prices[k]} > max_p )) && max_p=${#tip_prices[k]}
-        (( ${#tip_changes[k]} > max_c )) && max_c=${#tip_changes[k]}
-    done
-    for (( k=0; k<${#tip_tickers[@]}; k++ )); do
-        line=$(printf "%s  %-*s  %*s %-3s  %*s" \
-            "${tip_arrows[k]}" "$max_t" "${tip_tickers[k]}" \
-            "$max_p" "${tip_prices[k]}" "${tip_currencies[k]}" \
-            "$max_c" "${tip_changes[k]}")
-        tooltip_lines+=("<span font_family='monospace' color='${seg_colors[k]}'>${line}</span>")
-    done
 
     loop_len=$(( pos + sep_len ))
 
@@ -175,7 +186,7 @@ if [[ "$SCROLL" -eq 1 ]]; then
         done
     done
 
-    tooltip=$(printf '%s\n' "${tooltip_lines[@]}" | sed 's/$/\\n/' | tr -d '\n')
+    tooltip=$(build_tooltip)
     printf '{"text":"%s","tooltip":"%s","class":"neutral"}\n' "$output" "$tooltip"
 else
     # Default: rotate one ticker per invocation
@@ -190,15 +201,13 @@ else
     [[ -z "$price" || -z "$change" ]] && exit 0
 
     css=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "up"; else if (p < -0.1) print "down"; else print "neutral" }')
-    color=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "#a6e3a1"; else if (p < -0.1) print "#f38ba8"; else print "#f9e2af" }')
     arrow=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) print "↓"; else print "→" }')
     price_fmt=$(awk -v p="$price" 'BEGIN { printf "%.2f", p }')
     change_fmt=$(awk -v c="$change" 'BEGIN { printf "%+.2f", c }')
     change_abs=$(awk -v c="$change" 'BEGIN { printf "%.2f", (c < 0 ? -c : c) }')
 
     text=$(render "$FORMAT" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
-    tooltip_raw=$(render "$TOOLTIP" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
-    tooltip="<span color='${color}'>${tooltip_raw}</span>"
+    tooltip=$(build_tooltip)
 
     printf '{"text":"%s","tooltip":"%s","class":"%s"}\n' "$text" "$tooltip" "$css"
 fi
