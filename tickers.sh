@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Roda uma vez por invocação (interval: 3 no config).
-# Mantém cache em /tmp para evitar fetch a cada chamada.
+# Runs once per invocation (interval: 3 in config).
+# Keeps a cache in /tmp to avoid fetching on every call.
 
 TICKERS_FILE="$(dirname "$0")/tickers.txt"
 CACHE_FILE="/tmp/waybar-tickers.json"
@@ -68,7 +68,7 @@ printf '%d' $(( (i + 1) % ${#TICKERS[@]} )) > "$STATE_FILE"
 
 price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
 
-# ticker ausente no cache (adicionado a quente) — busca imediatamente
+# ticker missing from cache (added live) — fetch immediately
 if [[ -z "$price" ]]; then
     fetch_cache "${TICKERS[@]}"
     price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
