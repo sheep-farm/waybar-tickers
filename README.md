@@ -72,6 +72,22 @@ BTC-USD
 
 Changes to `tickers.txt` are picked up live — no Waybar restart needed. Added tickers are fetched immediately on first display; removed tickers are skipped on the next cycle.
 
+## Scroll mode
+
+Set `SCROLL=1` in `tickers.sh` to enable a continuous horizontal ticker tape. All tickers scroll left in a fixed-width window, each colored individually via Pango markup (`up` → green, `down` → red, `neutral` → yellow).
+
+Also change `interval` to `1` in `config.jsonc`:
+
+```jsonc
+"custom/tickers": {
+    "exec": "~/.config/waybar/scripts/tickers.sh",
+    "return-type": "json",
+    "interval": 1
+}
+```
+
+In scroll mode the CSS `.up` / `.down` / `.neutral` classes are not used (colors are inline). The `style.css` block for `#custom-tickers` still applies for padding and font.
+
 ## Parameters (tickers.sh)
 
 | Variable | Default | Description |
@@ -79,8 +95,12 @@ Changes to `tickers.txt` are picked up live — no Waybar restart needed. Added 
 | `FORMAT` | `{ticker} {arrow} {price} {currency} {change}%` | Main text format |
 | `TOOLTIP` | `{change}%` | Tooltip format |
 | `REFRESH_INTERVAL` | 300 s | Data refresh interval |
+| `SCROLL` | `0` | Set to `1` to enable scroll mode |
+| `DISPLAY_WIDTH` | `40` | Visible characters in scroll mode |
+| `SCROLL_STEP` | `3` | Characters advanced per invocation |
+| `SEPARATOR` | `    ·    ` | Separator between tickers in scroll mode |
 
-The display interval per ticker is controlled by `interval` in `config.jsonc` (default: 3 s).
+The display interval per ticker is controlled by `interval` in `config.jsonc` (default: 3 s; use 1 s in scroll mode).
 
 ### Placeholders
 
