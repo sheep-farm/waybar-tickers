@@ -76,13 +76,13 @@ Changes to `tickers.txt` are picked up live — no Waybar restart needed. Added 
 
 Set `SCROLL=1` in `tickers.sh` to enable a continuous horizontal ticker tape. All tickers scroll left in a fixed-width window, each colored individually via Pango markup (`up` → green, `down` → red, `neutral` → yellow).
 
-Also change `interval` to `1` in `config.jsonc`:
+Also set `interval` to `0` in `config.jsonc`. With `interval: 0`, Waybar respawns the script immediately after each exit, producing smooth scrolling at ~10–20 chars/second (controlled by bash execution time rather than a fixed timer):
 
 ```jsonc
 "custom/tickers": {
     "exec": "~/.config/waybar/scripts/tickers.sh",
     "return-type": "json",
-    "interval": 1
+    "interval": 0
 }
 ```
 
@@ -97,10 +97,10 @@ In scroll mode the CSS `.up` / `.down` / `.neutral` classes are not used (colors
 | `REFRESH_INTERVAL` | 300 s | Data refresh interval |
 | `SCROLL` | `0` | Set to `1` to enable scroll mode |
 | `DISPLAY_WIDTH` | `40` | Visible characters in scroll mode |
-| `SCROLL_STEP` | `3` | Characters advanced per invocation |
+| `SCROLL_STEP` | `1` | Characters advanced per invocation (scroll mode) |
 | `SEPARATOR` | `    ·    ` | Separator between tickers in scroll mode |
 
-The display interval per ticker is controlled by `interval` in `config.jsonc` (default: 3 s; use 1 s in scroll mode).
+In rotation mode (`SCROLL=0`), use `interval: 3` in `config.jsonc`. In scroll mode (`SCROLL=1`), use `interval: 0`.
 
 ### Placeholders
 

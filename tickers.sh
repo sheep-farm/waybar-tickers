@@ -13,12 +13,13 @@ REFRESH_INTERVAL=300
 FORMAT="{ticker} {arrow} {price} {currency} {change}%"
 TOOLTIP="{change}%"
 
-# Scroll mode: set SCROLL=1 to enable horizontal ticker tape.
-# Also set interval: 1 in config.jsonc when using scroll mode.
-SCROLL=0
+# SCROLL=1: horizontal ticker tape. SCROLL=0: single-ticker rotation.
+# When SCROLL=1, set interval: 0 in config.jsonc (Waybar respawns immediately).
+# When SCROLL=0, set interval: 3 in config.jsonc.
+SCROLL=1
 SEPARATOR="    ·    "
 DISPLAY_WIDTH=40
-SCROLL_STEP=3
+SCROLL_STEP=1
 
 read_tickers() {
     grep -v '^\s*#' "$TICKERS_FILE" 2>/dev/null | grep -v '^\s*$'
@@ -80,9 +81,6 @@ fi
 [[ ! -f "$CACHE_FILE" ]] && exit 0
 
 if [[ "$SCROLL" -eq 1 ]]; then
-    # Horizontal ticker tape with per-ticker Pango colors.
-    # Track each segment's start position so we can slice only the visible
-    # portion and wrap it in <span color='...'> without cutting markup tags.
     seg_starts=()
     seg_lens=()
     seg_texts=()
@@ -137,7 +135,6 @@ if [[ "$SCROLL" -eq 1 ]]; then
     for copy in 0 1; do
         copy_off=$(( copy * loop_len ))
         for (( j=0; j<n; j++ )); do
-            # Segment
             ss=$(( seg_starts[j] + copy_off ))
             se=$(( ss + seg_lens[j] ))
             ov_s=$(( ss > offset ? ss : offset ))
@@ -146,8 +143,7 @@ if [[ "$SCROLL" -eq 1 ]]; then
                 chunk="${seg_texts[j]:$(( ov_s - ss )):$(( ov_e - ov_s ))}"
                 output+="<span color='${seg_colors[j]}'>$chunk</span>"
             fi
-            # Separator after segment
-            ps=$(( se ))
+            ps=$se
             pe=$(( ps + sep_len ))
             ov_s=$(( ps > offset ? ps : offset ))
             ov_e=$(( pe < win_end ? pe : win_end ))
