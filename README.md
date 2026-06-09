@@ -38,9 +38,12 @@ Add to `config.jsonc`:
 "custom/tickers": {
     "exec": "~/.config/waybar/scripts/tickers.sh",
     "return-type": "json",
-    "interval": 3
+    "interval": 3,
+    "on-click": "true"
 }
 ```
+
+> `on-click: "true"` is a no-op but required for GTK3 to show the pointer cursor on hover.
 
 Add `"custom/tickers"` to `modules-left`, `modules-center`, or `modules-right`.
 
@@ -86,7 +89,8 @@ Also set `interval` to `0` in `config.jsonc`. With `interval: 0`, Waybar respawn
 "custom/tickers": {
     "exec": "~/.config/waybar/scripts/tickers.sh",
     "return-type": "json",
-    "interval": 0
+    "interval": 0,
+    "on-click": "true"
 }
 ```
 
