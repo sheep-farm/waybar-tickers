@@ -92,6 +92,14 @@ build_tooltip() {
             "$max_c" "${tip_changes[k]}")
         lines+=("<span font_family='monospace' color='${tip_colors[k]}'>${line}</span>")
     done
+    local updated="—"
+    if [[ -f "$CACHE_FILE" ]]; then
+        local mtime
+        mtime=$(stat -c %Y "$CACHE_FILE" 2>/dev/null)
+        updated=$(date -d "@${mtime}" '+%d %b %H:%M' 2>/dev/null || echo "—")
+    fi
+    lines+=("")
+    lines+=("<span font_family='monospace' color='#6c7086'>  Last update: ${updated}</span>")
     printf '%s\n' "${lines[@]}" | sed 's/$/\\n/' | tr -d '\n'
 }
 
