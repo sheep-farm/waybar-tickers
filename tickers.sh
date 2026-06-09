@@ -80,9 +80,17 @@ fi
 [[ ! -f "$CACHE_FILE" ]] && exit 0
 
 if [[ "$SCROLL" -eq 1 ]]; then
-    # Horizontal ticker tape: concatenate all tickers, scroll a fixed-width window
-    combined=""
+    # Horizontal ticker tape with per-ticker Pango colors.
+    # Track each segment's start position so we can slice only the visible
+    # portion and wrap it in <span color='...'> without cutting markup tags.
+    seg_starts=()
+    seg_lens=()
+    seg_texts=()
+    seg_colors=()
     tooltip_lines=()
+    sep_len=${#SEPARATOR}
+    pos=0
+    first=1
 
     for sym in "${TICKERS[@]}"; do
         price=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE")
@@ -97,28 +105,60 @@ if [[ "$SCROLL" -eq 1 ]]; then
 
         text=$(render "$FORMAT" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
         tip=$(render "$TOOLTIP" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
+        color=$(awk -v p="$change" 'BEGIN {
+            if (p > 0.1)       print "#a6e3a1"
+            else if (p < -0.1) print "#f38ba8"
+            else               print "#f9e2af"
+        }')
 
-        [[ -n "$combined" ]] && combined+="$SEPARATOR"
-        combined+="$text"
+        [[ "$first" -eq 0 ]] && pos=$(( pos + sep_len ))
+        seg_starts+=("$pos")
+        seg_lens+=("${#text}")
+        seg_texts+=("$text")
+        seg_colors+=("$color")
         tooltip_lines+=("$sym: $tip")
+        pos=$(( pos + ${#text} ))
+        first=0
     done
 
-    [[ -z "$combined" ]] && exit 0
+    [[ ${#seg_texts[@]} -eq 0 ]] && exit 0
 
-    loop_str="${combined}${SEPARATOR}"
-    loop_len=${#loop_str}
+    loop_len=$(( pos + sep_len ))
 
     offset=0
     [[ -f "$SCROLL_FILE" ]] && offset=$(cat "$SCROLL_FILE")
     (( offset >= loop_len )) && offset=0
-
-    doubled="${loop_str}${loop_str}"
-    display="${doubled:$offset:$DISPLAY_WIDTH}"
-
     printf '%d' $(( (offset + SCROLL_STEP) % loop_len )) > "$SCROLL_FILE"
 
-    tooltip=$(printf '%s\n' "${tooltip_lines[@]}")
-    printf '{"text":"%s","tooltip":"%s","class":"neutral"}\n' "$display" "$tooltip"
+    win_end=$(( offset + DISPLAY_WIDTH ))
+    output=""
+    n=${#seg_texts[@]}
+
+    for copy in 0 1; do
+        copy_off=$(( copy * loop_len ))
+        for (( j=0; j<n; j++ )); do
+            # Segment
+            ss=$(( seg_starts[j] + copy_off ))
+            se=$(( ss + seg_lens[j] ))
+            ov_s=$(( ss > offset ? ss : offset ))
+            ov_e=$(( se < win_end ? se : win_end ))
+            if (( ov_s < ov_e )); then
+                chunk="${seg_texts[j]:$(( ov_s - ss )):$(( ov_e - ov_s ))}"
+                output+="<span color='${seg_colors[j]}'>$chunk</span>"
+            fi
+            # Separator after segment
+            ps=$(( se ))
+            pe=$(( ps + sep_len ))
+            ov_s=$(( ps > offset ? ps : offset ))
+            ov_e=$(( pe < win_end ? pe : win_end ))
+            if (( ov_s < ov_e )); then
+                output+="${SEPARATOR:$(( ov_s - ps )):$(( ov_e - ov_s ))}"
+            fi
+        done
+    done
+
+    tooltip=$(printf '%s\n' "${tooltip_lines[@]}" | sed 's/$/\\n/' | tr -d '\n')
+    printf '{"text":"%s","tooltip":"%s","class":"neutral"}\n' "$output" "$tooltip"
 else
     # Default: rotate one ticker per invocation
     i=0
