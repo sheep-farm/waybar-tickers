@@ -86,6 +86,11 @@ if [[ "$SCROLL" -eq 1 ]]; then
     seg_texts=()
     seg_colors=()
     tooltip_lines=()
+    tip_arrows=()
+    tip_tickers=()
+    tip_prices=()
+    tip_currencies=()
+    tip_changes=()
     sep_len=${#SEPARATOR}
     pos=0
     first=1
@@ -102,7 +107,6 @@ if [[ "$SCROLL" -eq 1 ]]; then
         change_abs=$(awk -v c="$change" 'BEGIN { printf "%.2f", (c < 0 ? -c : c) }')
 
         text=$(render "$FORMAT" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
-        tip=$(render "$TOOLTIP" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
         color=$(awk -v p="$change" 'BEGIN {
             if (p > 0.1)       print "#a6e3a1"
             else if (p < -0.1) print "#f38ba8"
@@ -114,12 +118,30 @@ if [[ "$SCROLL" -eq 1 ]]; then
         seg_lens+=("${#text}")
         seg_texts+=("$text")
         seg_colors+=("$color")
-        tooltip_lines+=("<span color='${color}'>${tip}</span>")
+        tip_arrows+=("$arrow")
+        tip_tickers+=("$sym")
+        tip_prices+=("$price_fmt")
+        tip_currencies+=("$currency")
+        tip_changes+=("${change_fmt}%")
         pos=$(( pos + ${#text} ))
         first=0
     done
 
     [[ ${#seg_texts[@]} -eq 0 ]] && exit 0
+
+    max_t=0; max_p=0; max_c=0
+    for (( k=0; k<${#tip_tickers[@]}; k++ )); do
+        (( ${#tip_tickers[k]} > max_t )) && max_t=${#tip_tickers[k]}
+        (( ${#tip_prices[k]} > max_p )) && max_p=${#tip_prices[k]}
+        (( ${#tip_changes[k]} > max_c )) && max_c=${#tip_changes[k]}
+    done
+    for (( k=0; k<${#tip_tickers[@]}; k++ )); do
+        line=$(printf "%s  %-*s  %*s %-3s  %*s" \
+            "${tip_arrows[k]}" "$max_t" "${tip_tickers[k]}" \
+            "$max_p" "${tip_prices[k]}" "${tip_currencies[k]}" \
+            "$max_c" "${tip_changes[k]}")
+        tooltip_lines+=("<span font_family='monospace' color='${seg_colors[k]}'>${line}</span>")
+    done
 
     loop_len=$(( pos + sep_len ))
 
