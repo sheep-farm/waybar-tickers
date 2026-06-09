@@ -11,7 +11,7 @@ REFRESH_INTERVAL=300
 
 # Placeholders: {ticker} {arrow} {price} {currency} {change} {change_abs}
 FORMAT="{ticker} {arrow} {price} {currency} {change}%"
-TOOLTIP="{change}%"
+TOOLTIP="{arrow} {ticker} {price} {currency} {change}%"
 
 # SCROLL=1: horizontal ticker tape. SCROLL=0: single-ticker rotation.
 # When SCROLL=1, set interval: 0 in config.jsonc (Waybar respawns immediately).
@@ -114,7 +114,7 @@ if [[ "$SCROLL" -eq 1 ]]; then
         seg_lens+=("${#text}")
         seg_texts+=("$text")
         seg_colors+=("$color")
-        tooltip_lines+=("$sym: $tip")
+        tooltip_lines+=("<span color='${color}'>${tip}</span>")
         pos=$(( pos + ${#text} ))
         first=0
     done
@@ -168,13 +168,15 @@ else
     [[ -z "$price" || -z "$change" ]] && exit 0
 
     css=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "up"; else if (p < -0.1) print "down"; else print "neutral" }')
+    color=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "#a6e3a1"; else if (p < -0.1) print "#f38ba8"; else print "#f9e2af" }')
     arrow=$(awk -v p="$change" 'BEGIN { if (p > 0.1) print "↑"; else if (p < -0.1) print "↓"; else print "→" }')
     price_fmt=$(awk -v p="$price" 'BEGIN { printf "%.2f", p }')
     change_fmt=$(awk -v c="$change" 'BEGIN { printf "%+.2f", c }')
     change_abs=$(awk -v c="$change" 'BEGIN { printf "%.2f", (c < 0 ? -c : c) }')
 
     text=$(render "$FORMAT" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
-    tooltip=$(render "$TOOLTIP" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
+    tooltip_raw=$(render "$TOOLTIP" "$sym" "$arrow" "$price_fmt" "$currency" "$change_fmt" "$change_abs")
+    tooltip="<span color='${color}'>${tooltip_raw}</span>"
 
     printf '{"text":"%s","tooltip":"%s","class":"%s"}\n' "$text" "$tooltip" "$css"
 fi

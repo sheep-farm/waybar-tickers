@@ -93,7 +93,7 @@ In scroll mode the CSS `.up` / `.down` / `.neutral` classes are not used (colors
 | Variable | Default | Description |
 |---|---|---|
 | `FORMAT` | `{ticker} {arrow} {price} {currency} {change}%` | Main text format |
-| `TOOLTIP` | `{change}%` | Tooltip format |
+| `TOOLTIP` | `{arrow} {ticker} {price} {currency} {change}%` | Tooltip format (Pango color applied automatically) |
 | `REFRESH_INTERVAL` | 300 s | Data refresh interval |
 | `SCROLL` | `0` | Set to `1` to enable scroll mode |
 | `DISPLAY_WIDTH` | `40` | Visible characters in scroll mode |
