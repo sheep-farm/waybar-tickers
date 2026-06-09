@@ -28,25 +28,47 @@ read_tickers() {
 
 fetch_cache() {
     local tickers=("$@")
-    local tmp first=1
+    local tmp first=1 fresh=0
     tmp=$(mktemp)
     printf '{' > "$tmp"
     for sym in "${tickers[@]}"; do
-        local json curr prev currency change
-        json=$(curl -s --max-time 10 \
+        local body http_code curr prev currency change
+        body=$(mktemp)
+        http_code=$(curl -s -o "$body" --max-time 10 \
             -H "User-Agent: Mozilla/5.0" \
+            -w "%{http_code}" \
             "https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d")
-        curr=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.regularMarketPrice // empty')
-        prev=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.chartPreviousClose // empty')
-        currency=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.currency // empty')
+        if [[ "$http_code" != "200" ]]; then
+            rm -f "$body"
+            local cp cc cu
+            cp=$(jq -r --arg s "$sym" '.[$s].price // empty' "$CACHE_FILE" 2>/dev/null)
+            cc=$(jq -r --arg s "$sym" '.[$s].change // empty' "$CACHE_FILE" 2>/dev/null)
+            cu=$(jq -r --arg s "$sym" '.[$s].currency // empty' "$CACHE_FILE" 2>/dev/null)
+            if [[ -n "$cp" && -n "$cc" ]]; then
+                [[ "$first" -eq 0 ]] && printf ',' >> "$tmp"
+                printf '"%s":{"price":%s,"change":%s,"currency":"%s"}' "$sym" "$cp" "$cc" "$cu" >> "$tmp"
+                first=0
+            fi
+            continue
+        fi
+        curr=$(jq -r '.chart.result[0].meta.regularMarketPrice // empty' "$body")
+        prev=$(jq -r '.chart.result[0].meta.chartPreviousClose // empty' "$body")
+        currency=$(jq -r '.chart.result[0].meta.currency // empty' "$body")
+        rm -f "$body"
         [[ -z "$prev" || -z "$curr" ]] && continue
         change=$(awk -v c="$curr" -v p="$prev" 'BEGIN { printf "%.4f", (c-p)/p*100 }')
         [[ "$first" -eq 0 ]] && printf ',' >> "$tmp"
         printf '"%s":{"price":%s,"change":%s,"currency":"%s"}' "$sym" "$curr" "$change" "$currency" >> "$tmp"
         first=0
+        (( fresh++ ))
     done
     printf '}' >> "$tmp"
-    mv "$tmp" "$CACHE_FILE"
+    if [[ "$fresh" -gt 0 ]]; then
+        mv "$tmp" "$CACHE_FILE"
+    else
+        rm -f "$tmp"
+        [[ -f "$CACHE_FILE" ]] && touch "$CACHE_FILE"
+    fi
 }
 
 render() {
