@@ -5,6 +5,7 @@
 TICKERS_FILE="$(dirname "$0")/tickers.txt"
 CACHE_FILE="/tmp/waybar-tickers.json"
 STATE_FILE="/tmp/waybar-tickers.state"
+CHECKSUM_FILE="/tmp/waybar-tickers.checksum"
 REFRESH_INTERVAL=300
 
 # Placeholders: {ticker} {arrow} {price} {currency} {change} {change_abs}
@@ -52,11 +53,19 @@ render() {
 mapfile -t TICKERS < <(read_tickers)
 [[ "${#TICKERS[@]}" -eq 0 ]] && exit 0
 
-now=$(date +%s)
-cache_age=999999
-[[ -f "$CACHE_FILE" ]] && cache_age=$(( now - $(stat -c %Y "$CACHE_FILE") ))
-if (( cache_age >= REFRESH_INTERVAL )); then
+checksum=$(md5sum "$TICKERS_FILE" 2>/dev/null | cut -d' ' -f1)
+prev_checksum=""
+[[ -f "$CHECKSUM_FILE" ]] && prev_checksum=$(cat "$CHECKSUM_FILE")
+
+if [[ "$checksum" != "$prev_checksum" ]]; then
+    printf '%s' "$checksum" > "$CHECKSUM_FILE"
+    printf '0' > "$STATE_FILE"
     fetch_cache "${TICKERS[@]}"
+else
+    now=$(date +%s)
+    cache_age=999999
+    [[ -f "$CACHE_FILE" ]] && cache_age=$(( now - $(stat -c %Y "$CACHE_FILE") ))
+    (( cache_age >= REFRESH_INTERVAL )) && fetch_cache "${TICKERS[@]}"
 fi
 
 [[ ! -f "$CACHE_FILE" ]] && exit 0
