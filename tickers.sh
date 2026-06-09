@@ -26,8 +26,8 @@ fetch_cache() {
         json=$(curl -s --max-time 10 \
             -H "User-Agent: Mozilla/5.0" \
             "https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d")
-        prev=$(printf '%s' "$json" | jq -r '.chart.result[0].indicators.quote[0].close[-2] // empty')
-        curr=$(printf '%s' "$json" | jq -r '.chart.result[0].indicators.quote[0].close[-1] // empty')
+        curr=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.regularMarketPrice // empty')
+        prev=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.chartPreviousClose // empty')
         currency=$(printf '%s' "$json" | jq -r '.chart.result[0].meta.currency // empty')
         [[ -z "$prev" || -z "$curr" ]] && continue
         change=$(awk -v c="$curr" -v p="$prev" 'BEGIN { printf "%.4f", (c-p)/p*100 }')
