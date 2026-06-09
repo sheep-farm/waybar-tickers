@@ -2,6 +2,8 @@
 # Runs once per invocation (interval: 1 in scroll mode, 3 otherwise).
 # Keeps a cache in /tmp to avoid fetching on every call.
 
+VERSION="1.0.0"
+
 TICKERS_FILE="$(dirname "$0")/tickers.txt"
 CACHE_FILE="/tmp/waybar-tickers.json"
 STATE_FILE="/tmp/waybar-tickers.state"

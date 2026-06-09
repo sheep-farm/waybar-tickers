@@ -1,5 +1,7 @@
 # waybar-tickers
 
+![version](https://img.shields.io/badge/version-1.0.0-blue)
+
 Waybar module for rotating stock quotes via Yahoo Finance. No external dependencies.
 
 https://github.com/sheep-farm/waybar-tickers
